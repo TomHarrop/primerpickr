@@ -74,7 +74,7 @@ MakePrimerPickingFile <- function(
 
     # check for duplicate rows
     # this would result in two primer combos in the same well
-    if (any(duplicated(full_layout,
+    if (any(duplicated(my_library_layout,
                        by = c("lib_col", "lib_row", "lib_plate")))) {
         stop(glue::glue("Duplicated rows in library_layout"))
     }
