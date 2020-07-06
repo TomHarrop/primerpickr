@@ -8,7 +8,7 @@ MakePrimerPickingFile(
   library_layout,
   primer_set = "neb",
   primer_volume = 5/3,
-  output_path,
+  output_path = ".",
   output_file
 )
 }

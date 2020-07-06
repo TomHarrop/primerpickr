@@ -23,8 +23,11 @@ MakePrimerPickingFile <- function(
     library_layout,
     primer_set = "neb",
     primer_volume = 5/3,
-    output_path,
+    output_path = ".",
     output_file) {
+
+    # don't modify the original
+    my_library_layout <- copy(library_layout)
 
     # which primer uses which layout
     primer_layouts <- list(
@@ -37,42 +40,48 @@ MakePrimerPickingFile <- function(
         my_primer_layout <- primer_layouts[[primer_set]]
     }
 
-
     # check if we have lib_well and primer columns
     required_colnames <- c("library_id", "i7_primer", "i5_primer")
     for (colname in required_colnames) {
-        if (!colname %in% names(library_layout)) {
+        if (!colname %in% names(my_library_layout)) {
             stop(glue::glue("library_layout missing column {colname}"))
         }
     }
 
     # set up lib well if missing
     position_colnames <- c("lib_row", "lib_col")
-    if (!"lib_well" %in% names(library_layout)) {
+    if (!"lib_well" %in% names(my_library_layout)) {
         for (colname in position_colnames) {
-            if (!colname %in% names(library_layout)) {
+            if (!colname %in% names(my_library_layout)) {
                 stop(glue::glue(
                     "library_layout missing columns lib_well and {colname}"))
             }
         }
         message(glue::glue(
             "Detected {position_colnames[[1]]}, generating lib_well"))
-        library_layout[, lib_well := paste0(lib_row, lib_col)]
+        my_library_layout[, lib_well := paste0(lib_row, lib_col)]
     }
 
     # check if we have lib_plate column and if so how many plates
-    if ("lib_plate" %in% names(library_layout)) {
-        n_plates <- library_layout[, length(unique(lib_plate))]
+    if ("lib_plate" %in% names(my_library_layout)) {
+        n_plates <- my_library_layout[, length(unique(lib_plate))]
     } else {
         n_plates <- 1
-        library_layout[, lib_plate := 1]
+        my_library_layout[, lib_plate := 1]
     }
 
     message(glue::glue("Laying out {n_plates} library plate(s)"))
 
+    # check for duplicate rows
+    # this would result in two primer combos in the same well
+    if (any(duplicated(full_layout,
+                       by = c("lib_col", "lib_row", "lib_plate")))) {
+        stop(glue::glue("Duplicated rows in library_layout"))
+    }
+
     # melt the library_layout by id
     melt_vars <- c("library_id", "lib_well", "lib_plate")
-    my_libs_long <- melt(library_layout,
+    my_libs_long <- melt(my_library_layout,
                          id.vars = melt_vars,
                          measure.vars = c("i7_primer", "i5_primer"),
                          variable.name = "primer_colname",
